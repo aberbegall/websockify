@@ -8,7 +8,10 @@
     "type": "git",
     "url": "git://github.com/kanaka/websockify.git"
   },
-  "files": ["../../docs/LICENSE.LGPL-3","websockify.js"],
+  "files": [
+    "../../docs/LICENSE.LGPL-3",
+    "websockify.js"
+  ],
   "bin": {
     "websockify": "./websockify.js"
   },
@@ -16,8 +19,9 @@
     "node": ">=0.8.9"
   },
   "dependencies": {
-    "ws": ">=0.4.27",
     "optimist": "latest",
-    "policyfile": "latest"
+    "policyfile": "latest",
+    "tunnel-ssh": "^4.1.3",
+    "ws": ">=0.4.27"
   }
 }
