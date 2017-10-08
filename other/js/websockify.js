@@ -16,11 +16,12 @@ var argv = require('optimist').argv,
     url = require('url'),
     path = require('path'),
     fs = require('fs'),
+    tunnel = require('tunnel-ssh'),
 
     Buffer = require('buffer').Buffer,
     WebSocketServer = require('ws').Server,
 
-    webServer, wsServer,
+    webServer, wsServer, sshkey, sshkeypass, sshuser, sshlocalport,
     source_host, source_port, target_host, target_port,
     web_path = null;
 
@@ -35,9 +36,38 @@ new_client = function(client, req) {
     log('WebSocket connection');
     log('Version ' + client.protocolVersion + ', subprotocol: ' + client.protocol);
 
-    var target = net.createConnection(target_port,target_host, function() {
-        log('connected to target');
-    });
+    if (sshkey) {
+        var config = {
+            username: sshuser,
+            privateKey: sshkey,
+            passphrase: sshkeypass,
+            host: target_host,
+            port:22,
+            dstPort: target_port,
+            localPort: sshlocalport
+          };  
+        var sshtunnel = tunnel(config, function(error, server){
+            if(error){
+                log('error found when configuring ssh tunnel');
+            }
+            else {
+                log('tunneling target connection');
+            }
+        });
+        sshtunnel.on('error', function(err){
+            console.error('Error found on ssh tunnel:', err);
+            sshtunnel.close();
+        });    
+        var target = net.createConnection(sshlocalport, 'localhost', function() {
+            log('connected to target');
+        });        
+    }
+    else {
+        var target = net.createConnection(target_port, target_host, function() {
+            log('connected to target');
+        });        
+    }
+
     target.on('data', function(data) {
         //log("sending message: " + data);
         try {
@@ -140,7 +170,7 @@ try {
         throw("illegal port");
     }
 } catch(e) {
-    console.error("websockify.js [--web web_dir] [--cert cert.pem [--key key.pem]] [source_addr:]source_port target_addr:target_port");
+    console.error("websockify.js [--web web_dir] [[--cert cert.pem [--key key.pem]] [[--sshkey key.ppk] [--sshkeypass secret] [--sshuser user] [--sshlocalport 1234]] [source_addr:]source_port target_addr:target_port");
     process.exit(2);
 }
 
@@ -161,6 +191,21 @@ if (argv.cert) {
     console.log("    - Running in unencrypted HTTP (ws://) mode");
     webServer = http.createServer(http_request);
 }
+
+if (argv.sshkey) {
+    sshkey = fs.readFileSync(argv.sshkey);    
+    console.log("    - Target TCP connection will be redirected through a secure ssh channel");
+    if (argv.sshkeypass) {
+        sshkeypass = argv.sshkeypass;
+    }
+    if (argv.sshuser) {
+        sshuser = argv.sshuser;
+    }
+    if (argv.sshlocalport) {
+        sshlocalport = argv.sshlocalport;
+    }
+}
+
 webServer.listen(source_port, function() {
     wsServer = new WebSocketServer({server: webServer});
     wsServer.on('connection', new_client);
