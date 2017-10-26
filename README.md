@@ -1,3 +1,9 @@
+## This is fork from [noVNC](https://github.com/kanaka/noVNC) project.
+The scope of the fork is only the websokify javascript source.
+The porpouse is to add these functionalites on top existing websokify script:
+- Support ssh port redirect functionality on top the websockify js script.
+- Support for multiple connections and daemonize the script
+
 ## websockify: WebSockets support for any application/server
 
 websockify was formerly named wsproxy and was part of the
